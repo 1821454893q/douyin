@@ -2,14 +2,15 @@ package service
 
 import (
 	"douyin/src/cache"
+	"douyin/src/config"
 	"douyin/src/db"
 	"github.com/kataras/iris/v12"
 	"io"
 	"os"
 )
 
-const (
-	filePath = "upload/"
+var (
+	FilePath = config.AppConfig.GetString("video.filePath")
 )
 
 // Contribution 视频投稿
@@ -38,7 +39,19 @@ func Contribution(ctx iris.Context) {
 	}
 	defer file.Close()
 
-	fw, err := os.Create(filePath + head.Filename)
+	if b, _ := isHasDir(FilePath); !b {
+		err = os.MkdirAll(FilePath, 0777)
+		if err != nil {
+			ctx.JSON(map[string]interface{}{
+				"status_code": 5,
+				"status_msg":  "MkdirAll filed,err: " + err.Error(),
+			})
+			return
+		}
+	}
+
+	fw, err := os.Create(FilePath + head.Filename)
+
 	if err != nil {
 		ctx.JSON(map[string]interface{}{
 			"status_code": 2,
@@ -72,4 +85,12 @@ func Contribution(ctx iris.Context) {
 		AuthorName: user.Name,
 		PlayUrl:    head.Filename,
 	})
+}
+
+func isHasDir(path string) (bool, error) {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+	return stat.IsDir(), nil
 }
